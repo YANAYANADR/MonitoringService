@@ -1,0 +1,8 @@
+psycopg2~=2.9.9
+SQLAlchemy~=2.0.30
+SQLAlchemy-Utils~=0.41.2
+starlette~=0.37.2
+fastapi~=0.111.0
+ping3~=4.0.8
+urllib3~=2.2.1
+uvicorn~=0.29.0

@@ -1,0 +1,22 @@
+html,
+body {
+  margin: 0px;
+  padding: 0px;
+}
+
+#network {
+  min-height: 100vh;
+}
+
+#network-font-awesome-4,
+#network-font-awesome-5,
+#network-ionicons {
+  height: 100vh;
+  width: 100%;
+}
+
+#text {
+  position: absolute;
+  left: 50%;
+  padding: 1em;
+}

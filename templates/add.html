@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+ <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static',path='/add.css') }}" />
+  </head>
+  <body>
+    <header>
+        <a href="/add">Добавить цель</a>
+        <a href="/now">Сейчас</a>
+        <a href="/history">История</a>
+    </header>
+    <h1>Добавить цель</h1>
+    <form action="" method="post">
+      <select name="type" id="type" onchange="change_form(event)">
+        <option value="0">ip</option>
+        <option value="1">url</option>
+        <option value="2">database</option>
+      </select>
+      <label for="address" id="addressLabel"> Ip: </label>
+      <input type="text" name="address" id="address" required />
+      <label for="username" id="usernameLabel">Имя пользователя:</label>
+      <input type="text" name="username" id="username" />
+      <label for="password" id="passwordLabel">Пароль:</label>
+      <input type="password" name="password" id="password" />
+      <label for="dbtype" id="dbtypeLabel">Тип бд:</label>
+      <select name="dbtype" id="dbtype">
+        <option>postgresql</option>
+      </select>
+      <label for="port" id="portLabel">Порт:</label>
+      <input type="text" name="port" id="port" />
+      <button>отправить</button>
+    </form>
+    <script>
+      function change_form(event) {
+        val = event.target.value;
+        console.log(val);
+
+        addressInp = document.getElementById("address");
+        addressLabel = document.getElementById("addressLabel");
+
+        usernameInp = document.getElementById("username");
+        usernameLabel = document.getElementById("usernameLabel");
+
+        passwordInp = document.getElementById("password");
+        passwordLabel = document.getElementById("passwordLabel");
+
+        dbtypeInp = document.getElementById("dbtype");
+        dbtypeLabel = document.getElementById("dbtypeLabel");
+
+        portInp = document.getElementById("port");
+        portLabel = document.getElementById("portLabel");
+
+        switch (parseInt(val)) {
+          case 0:
+            addressLabel.innerHTML = "Ip:";
+
+            usernameInp.setAttribute("type", "hidden");
+            usernameInp.required = "false";
+            usernameLabel.style.display = "none";
+
+            passwordInp.setAttribute("type", "hidden");
+            passwordInp.required = "false";
+            passwordLabel.style.display = "none";
+
+            dbtypeInp.style.display = "none";
+            dbtypeInp.required = "false";
+            dbtypeLabel.style.display = "none";
+
+            portInp.setAttribute("type", "hidden");
+            portInp.required = "false";
+            portLabel.style.display = "none";
+            break;
+          case 1:
+            addressLabel.innerHTML = "Url:";
+
+            usernameInp.setAttribute("type", "text");
+            usernameInp.required = false;
+            usernameLabel.style.display = "initial";
+
+            passwordInp.setAttribute("type", "password");
+            passwordInp.required = false;
+            passwordLabel.style.display = "initial";
+
+            dbtypeInp.style.display = "none";
+            dbtypeInp.required = false;
+            dbtypeLabel.style.display = "none";
+
+            portInp.setAttribute("type", "hidden");
+            portInp.required = false;
+            portLabel.style.display = "none";
+            break;
+          case 2:
+            addressLabel.innerHTML = "Адрес базы:";
+
+            usernameInp.setAttribute("type", "text");
+            usernameInp.setAttribute("required", "true");
+            usernameLabel.style.display = "initial";
+
+            passwordInp.setAttribute("type", "password");
+            passwordInp.setAttribute("required", "true");
+            passwordLabel.style.display = "initial";
+
+            dbtypeInp.style.display = "initial";
+            dbtypeInp.setAttribute("required", "true");
+            dbtypeLabel.style.display = "initial";
+
+            portInp.setAttribute("type", "text");
+            portInp.setAttribute("required", "true");
+            portLabel.style.display = "initial";
+            break;
+          default:
+            break;
+        }
+      }
+      sel = document.getElementById("type");
+      sel.dispatchEvent(new CustomEvent("change"));
+    </script>
+  </body>
+</html>

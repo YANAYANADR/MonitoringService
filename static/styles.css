@@ -1,0 +1,10 @@
+header{
+background-color:black;
+display:flex;
+align-items:center;
+justify-content:space-evenly;
+min-height:50px;
+}
+header a{
+color:white;
+}

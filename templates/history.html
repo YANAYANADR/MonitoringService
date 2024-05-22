@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- <script src="../static/vis-timeline-graph2d.min.js"></script> -->
+        <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
+    <script src="{{ url_for('static',path='/vis-timeline-graph2d.min.js') }}"></script>
+    <!-- <link rel="stylesheet" href="../static/vis-timeline-graph2d.min.css" /> -->
+    <link rel="stylesheet" href="{{ url_for('static',path='/vis-timeline-graph2d.min.css') }}"/>
+</head>
+<body>
+<header>
+    <a href="/add">Добавить цель</a>
+    <a href="/now">Сейчас</a>
+    <a href="/history">История</a>
+</header>
+<h1>История доступности</h1>
+<div id="visualization"></div>
+
+<script type="text/javascript">
+    // DOM element where the Timeline will be attached
+    var container = document.getElementById("visualization");
+    //groups
+    var groups = new vis.DataSet([
+    {% set lastId=[]%}
+    {% set lastId2=[] %}
+      {% for item in ips %}
+      { id: {{item.id}}, content: "{{item.address}}", value: 1 },
+    {% set __=lastId.append(1) %}
+      {% endfor %}
+       {% for item in urls %}
+       { id: {{item.id}}+{{lastId|length}}, content: "{{item.address}}", value: 2 },
+       {% set __=lastId2.append(1) %}
+       {% endfor%}
+      {% for item in dbs %}
+       { id: {{item.id}}+{{lastId|length}}+{{lastId2|length}}, content: "{{item.address}}:{{item.port}}", value: 3 },
+       {% set __=lastId2.append(1) %}
+      {% endfor%}
+
+    ]);
+    // Create a DataSet (allows two way data-binding)
+    var items = new vis.DataSet([
+    //Get ips first
+      {% for i in ip_history %}
+       {% if i['start'] %}
+          {% if i['end'] %}
+       { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+       end: new Date(Date.parse('{{i['end']}}')),
+       group: {{i['ipid']}} },
+
+       {% else %}
+       { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+       group: {{i['ipid']}} },
+       {% endif %}
+       {% else %}
+
+       { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
+       group: {{i['ipid']}} },
+       {% endif %}
+      {% endfor %}
+
+      // Get urls now
+
+        {% for i in url_history %}
+         {% if i['start'] %}
+            {% if i['end'] %}
+         { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+         end: new Date(Date.parse('{{i['end']}}')),
+         group: {{i['ipid']}}+{{lastId|length}} },
+
+         {% else %}
+         { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+         group: {{i['ipid']}}+{{lastId|length}} },
+         {% endif %}
+         {% else %}
+
+         { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
+         group: {{i['ipid']}}+{{lastId|length}} },
+         {% endif %}
+        {% endfor %}
+
+        // get dbs
+
+        {% for i in db_history %}
+         {% if i['start'] %}
+            {% if i['end'] %}
+         { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+         end: new Date(Date.parse('{{i['end']}}')),
+         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}} },
+
+         {% else %}
+         { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}} },
+         {% endif %}
+         {% else %}
+
+         { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
+         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}}-1 },
+         {% endif %}
+        {% endfor %}
+    ]);
+
+    // Configuration for the Timeline
+    var options = {
+      groupOrder: function (a, b) {
+        return a.value - b.value;
+      },
+    };
+
+    // Create a Timeline
+    var timeline = new vis.Timeline(container, items, options);
+    timeline.setGroups(groups);
+</script>
+</body>
+</html>

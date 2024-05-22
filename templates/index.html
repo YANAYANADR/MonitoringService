@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+     <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
+     <link rel="stylesheet" href="{{ url_for('static',path='/index.css') }}" />
+</head>
+<body>
+<header>
+    <a href="/add">Добавить цель</a>
+    <a href="/now">Сейчас</a>
+    <a href="/history">История</a>
+</header>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.11.1/css/all.css">
+<script type="text/javascript" src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"></script>
+<div id="network">
+    <h2><i class="fas fa-flag"></i> Font Awesome 5</h2>
+    <div id="network-font-awesome-5"></div>
+</div>
+
+</body>
+
+<!-- <script src="../static/test.js"></script> -->
+<script>
+    let nodes = new vis.DataSet()
+
+  function drawFontAwesome5() {
+      const options = {
+        groups: {
+          '1': {
+            shape: "icon",
+            icon: {
+              face: "'Font Awesome 5 Free'",
+              weight: "900", // Font Awesome 5 doesn't work properly unless bold.
+
+              code: "\uf085", // шестеренки
+              size: 50,
+              color: "#A9F5D0",
+            },
+          },
+          '2': {
+            shape: "icon",
+            icon: {
+              face: "'Font Awesome 5 Free'",
+              weight: "900", // Font Awesome 5 doesn't work properly unless bold.
+              code: "\uf1c0", // база данных
+              size: 50,
+              color: "#A9F5D0",
+            },
+          },
+          '3':{
+               shape: "icon",
+            icon: {
+              face: "'Font Awesome 5 Free'",
+              weight: "900", // Font Awesome 5 doesn't work properly unless bold.
+              code: "\uf233", // сервер
+              size: 50,
+              color: "#A9F5D0",
+            },
+          }
+        },
+      };
+
+
+      // create an array with edges
+
+      // prepare the arguments
+      const container = document.getElementById("network-font-awesome-5");
+      const data = { nodes };
+
+      if (document.fonts) {
+        // Decent browsers: Make sure the fonts are loaded.
+        document.fonts
+          .load('normal normal 900 24px/1 "Font Awesome 5 Free"')
+          .catch(console.error.bind(console, "Failed to load Font Awesome 5."))
+          .then(function () {
+            // create a network
+            const network = new vis.Network(container, data, options);
+          })
+          .catch(
+            console.error.bind(
+              console,
+              "Failed to render the network with Font Awesome 5."
+            )
+          );
+      } else {
+        // IE: Let's just hope the fonts are loaded (they're probably not,
+        // hence the timeout).
+        window.addEventListener("load", function () {
+          setTimeout(function () {
+            // create a network
+            const network = new vis.Network(container, data, options);
+          }, 500);
+        });
+      }
+      };
+
+      drawFontAwesome5();
+
+      // Websocket stuff very important
+      let socket=new WebSocket('ws://localhost:8000/ws')
+      socket.onopen=function(e){
+          console.log('Socket open')
+      }
+      socket.onmessage=function(e){
+          let State=JSON.parse(e.data);
+          nodes.update(State)
+          console.log('Got socket msg')
+      }
+
+</script>
+</html>
