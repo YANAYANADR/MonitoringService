@@ -1,33 +1,23 @@
 import datetime
 import logging
+import os
 from typing import Optional
 
+import sqlalchemy
 from sqlalchemy import (create_engine, String, DateTime,
                         text, select, func)
 from sqlalchemy.orm import (DeclarativeBase, Mapped,
                             mapped_column, Session)
 import psycopg2
-
 # logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
-# code to only be used in test!!!! vvv
-
-# eng = create_engine("postgresql://postgres:1234@localhost:5432/postgres",
-#                     isolation_level="AUTOCOMMIT")
-#
-# with Session(eng) as sess:
-#     try:
-#         sess.execute(text('CREATE DATABASE monitoring'))
-#         log.info('База создана')
-#     except Exception as e:
-#         log.info(f'База уже существует')
-# ^^^^ end of test code pls remove later
-
-# access db
 try:
-    eng = create_engine("postgresql://postgres:1234@db:5432/monitoring")
+
+    u=sqlalchemy.URL.create('postgresql', os.environ['POSTGRES_USER'],
+                            os.environ['POSTGRES_PASSWORD'], 'db', 5432, os.environ['POSTGRES_DB'])
+    eng = create_engine(u)
 except:
     log.error('Не удалось подключится к базе')
     quit()
@@ -91,6 +81,7 @@ Base.metadata.create_all(eng)
 
 
 # Methods
+
 
 # Checks
 def ip_in_db(address):
@@ -418,6 +409,6 @@ if __name__ == '__main__':
     # add_ip_status(3,datetime.datetime.now(),'down')
     # print(get_all_ips_status_time())
     # print(get_history_ip()[0].ex_id)
-    print(get_all_urls())
+    print(os.environ['POSTGRES_USER'])
     # print(get_all_dbs_status_time())
     pass
