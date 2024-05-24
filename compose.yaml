@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: ${USER}
       POSTGRES_PASSWORD: ${PASSWORD}
       POSTGRES_DB: monitoring
+      WAIT_TIME: ${WAIT_TIME}
     ports:
       - '8000:8000'
     networks:

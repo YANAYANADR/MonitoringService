@@ -46,18 +46,18 @@
       {% for i in ip_history %}
        {% if i['start'] %}
           {% if i['end'] %}
-       { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+       { content: "был offline", start: new Date(Date.parse('{{i['start']}}')),
        end: new Date(Date.parse('{{i['end']}}')),
-       group: {{i['ipid']}} },
+       group: {{i['id']}} },
 
        {% else %}
        { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-       group: {{i['ipid']}} },
+       group: {{i['id']}} },
        {% endif %}
        {% else %}
 
        { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-       group: {{i['ipid']}} },
+       group: {{i['id']}} },
        {% endif %}
       {% endfor %}
 
@@ -68,16 +68,16 @@
             {% if i['end'] %}
          { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
          end: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['ipid']}}+{{lastId|length}} },
+         group: {{i['id']}}+{{lastId|length}} },
 
          {% else %}
          { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-         group: {{i['ipid']}}+{{lastId|length}} },
+         group: {{i['id']}}+{{lastId|length}} },
          {% endif %}
          {% else %}
 
          { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['ipid']}}+{{lastId|length}} },
+         group: {{i['id']}}+{{lastId|length}} },
          {% endif %}
         {% endfor %}
 
@@ -88,16 +88,16 @@
             {% if i['end'] %}
          { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
          end: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}} },
+         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}} },
 
          {% else %}
          { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}} },
+         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}} },
          {% endif %}
          {% else %}
 
          { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['ipid']}}+{{lastId|length}}+{{lastId2|length}}-1 },
+         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}}-1 },
          {% endif %}
         {% endfor %}
     ]);

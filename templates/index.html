@@ -29,6 +29,17 @@
   function drawFontAwesome5() {
       const options = {
         groups: {
+        '0': {
+            shape: "icon",
+            icon: {
+              face: "'Font Awesome 5 Free'",
+              weight: "900", // Font Awesome 5 doesn't work properly unless bold.
+
+              code: "\uf05e", // 0
+              size: 50,
+              color: "gray",
+            },
+          },
           '1': {
             shape: "icon",
             icon: {
@@ -105,9 +116,10 @@
           console.log('Socket open')
       }
       socket.onmessage=function(e){
+        console.log('Got socket msg'+e.data)
           let State=JSON.parse(e.data);
           nodes.update(State)
-          console.log('Got socket msg')
+
       }
 
 </script>

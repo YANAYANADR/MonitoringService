@@ -21,7 +21,8 @@
         <option value="2">database</option>
       </select>
       <label for="address" id="addressLabel"> Ip: </label>
-      <input type="text" name="address" id="address" required />
+      <input type="text" name="address" id="address"
+             required />
       <label for="username" id="usernameLabel">Имя пользователя:</label>
       <input type="text" name="username" id="username" />
       <label for="password" id="passwordLabel">Пароль:</label>
@@ -35,6 +36,7 @@
       <button>отправить</button>
     </form>
     <script>
+
       function change_form(event) {
         val = event.target.value;
         console.log(val);
@@ -56,6 +58,10 @@
 
         switch (parseInt(val)) {
           case 0:
+            addressInp.placeholder='255.255.255.255'
+            addressInp.addEventListener('keydown',no_letters)
+            addressInp.title="Введите ip"
+            addressInp.pattern="[0-9.]{7,16}"
             addressLabel.innerHTML = "Ip:";
 
             usernameInp.setAttribute("type", "hidden");
@@ -75,6 +81,10 @@
             portLabel.style.display = "none";
             break;
           case 1:
+          addressInp.placeholder='https://...'
+            addressInp.title="Введите url"
+            addressInp.removeEventListener('keydown',no_letters)
+            addressInp.pattern="https?://.+|ws?://.+"
             addressLabel.innerHTML = "Url:";
 
             usernameInp.setAttribute("type", "text");
@@ -94,6 +104,9 @@
             portLabel.style.display = "none";
             break;
           case 2:
+            addressInp.title="Введите адрес базы"
+            addressInp.removeEventListener('keydown',no_letters)
+            addressInp.pattern="[^]*"
             addressLabel.innerHTML = "Адрес базы:";
 
             usernameInp.setAttribute("type", "text");
@@ -109,8 +122,11 @@
             dbtypeLabel.style.display = "initial";
 
             portInp.setAttribute("type", "text");
+            portInp.addEventListener('keydown',only_num)
             portInp.setAttribute("required", "true");
+            portInp.pattern="[0-9]*"
             portLabel.style.display = "initial";
+            
             break;
           default:
             break;
@@ -118,6 +134,25 @@
       }
       sel = document.getElementById("type");
       sel.dispatchEvent(new CustomEvent("change"));
+
+      function no_letters(event){
+      const key=event.keyCode;
+      const nope=[190,8,13];
+      if(!((key >= 48 && key <= 57) ||
+            (key >= 96 && key <= 105)
+            )&&!(nope.includes(key))){
+            event.preventDefault();
+
+      }};
+
+      function only_num(e){
+        const key=event.keyCode;
+      if(!((key >= 48 && key <= 57) ||
+            (key >= 96 && key <= 105) 
+            )&& key!=8){
+            event.preventDefault();
+
+      }};
     </script>
   </body>
 </html>
