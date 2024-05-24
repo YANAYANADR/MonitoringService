@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 try:
     u = sqlalchemy.URL.create('postgresql+asyncpg', os.environ['POSTGRES_USER'],
-    os.environ['POSTGRES_PASSWORD'], 'db', 5432, os.environ['POSTGRES_DB'])
+                              os.environ['POSTGRES_PASSWORD'], 'db', 5432, os.environ['POSTGRES_DB'])
     eng = create_async_engine(u)
     # eng = create_async_engine("postgresql+asyncpg://postgres:1234@localhost:5432/monitoring")
 except:
@@ -172,11 +172,12 @@ class Database:
     async def get_db(s: async_sessionmaker[AsyncSession](), id: int):
         out = await s.execute(select(Dbs).where(Dbs.id == id))
         return out.first()[0]
+
     # Get last ids
     @staticmethod
     @create_session()
-    async def get_last_ip_id(s: async_sessionmaker[AsyncSession]())->int:
-        out= await s.execute(select(func.max(Ips.id)))
+    async def get_last_ip_id(s: async_sessionmaker[AsyncSession]()) -> int:
+        out = await s.execute(select(func.max(Ips.id)))
         return out.first()[0]
 
     @staticmethod
@@ -323,14 +324,15 @@ class Database:
     # This is necessary to properly update colours
     @staticmethod
     async def first_load_icons():
-        ids=[i.id for i in await Database.get_all_ips()]
+        ids = [i.id for i in await Database.get_all_ips()]
         for i in await Database.get_all_urls():
-            ids.append(i.id+await Database.get_last_ip_id())
+            ids.append(i.id + await Database.get_last_ip_id())
         for i in await Database.get_all_dbs():
-            ids.append(i.id+await Database.get_last_ip_id()+ await Database.get_last_url_id())
-        out=[]
+            ids.append(i.id + await Database.get_last_ip_id() + await Database.get_last_url_id())
+        out = []
         for i in ids:
-            out.append({'id':i,'label':'Неизвестно','title':'Этот сервис есть в базе но ещё не проверялся','group':'0'})
+            out.append(
+                {'id': i, 'label': 'Неизвестно', 'title': 'Этот сервис есть в базе но ещё не проверялся', 'group': '0'})
         return out
 
     @staticmethod
@@ -369,10 +371,10 @@ class Database:
         match history_type:
             case 0:
                 names = await Database.get_all_ips()
-                code="\uf085"
+                code = "\uf085"
             case 1:
                 names = await Database.get_all_urls()
-                add_id =await Database.get_last_ip_id()
+                add_id = await Database.get_last_ip_id()
                 code = "\uf1c0",
             case 2:
                 names = await Database.get_all_dbs()
@@ -382,12 +384,12 @@ class Database:
                 raise ValueError('history_type can only be in range 0-2')
 
         for r in res:
-            col=''
+            col = ''
             # making title
             if r.end:
                 if r.start:
                     title = f'Был offline с {r.end} до {r.start}'
-                    col='#A9F5D0'
+                    col = '#A9F5D0'
                 else:
                     title = f'Online с {r.end}'
                     col = '#A9F5D0'
@@ -409,8 +411,8 @@ class Database:
 
             dc['label'] = label
             dc['id'] = int(r.id) + add_id
-            dc['icon']['color']=col
-            dc['icon']['code']=code
+            dc['icon']['color'] = col
+            dc['icon']['code'] = code
             output.append(dc)
             dc = {
                 'id': 0,
@@ -421,19 +423,17 @@ class Database:
                     'color': "red",
                     'face': "'Font Awesome 5 Free'",
                     'weight': "900",
-                    'code':0
+                    'code': 0
                 },
             }
         return output
 
 
-async def a():
-    h = await Database.get_history_ip()
-    print(h)
-    print([a[0].ex_id for a in h])
-
-
 if __name__ == '__main__':
+    async def a():
+        h = await Database.get_history_ip()
+        print(h)
+        print([a[0].ex_id for a in h])
     # asyncio.run(add_ip_status(2,datetime.datetime.now(),'up'))
     asyncio.run(a())
     pass
