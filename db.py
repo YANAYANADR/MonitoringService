@@ -178,13 +178,15 @@ class Database:
     @create_session()
     async def get_last_ip_id(s: async_sessionmaker[AsyncSession]()) -> int:
         out = await s.execute(select(func.max(Ips.id)))
-        return out.first()[0]
+        res=out.first()[0]
+        return res if res else 0
 
     @staticmethod
     @create_session()
     async def get_last_url_id(s: async_sessionmaker[AsyncSession]()) -> int:
         out = await s.execute(select(func.max(Urls.id)))
-        return out.first()[0]
+        res = out.first()[0]
+        return res if res else 0
 
     # Get all
     @staticmethod
