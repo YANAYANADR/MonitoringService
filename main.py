@@ -22,7 +22,7 @@ global_time = int(os.environ['WAIT_TIME'])
 
 
 # The function that runs the FastAPI server
-async def server()->None:
+async def server() -> None:
     # This allows the server to be run async
     conf = uvicorn.Config("api:app",
                           host='0.0.0.0',
@@ -47,20 +47,23 @@ class Checks:
     @staticmethod
     def html(url: str, username: str = None, password: str = None) -> bool:
         # Sends head req if 401 attempts auth
-        res = urllib3.request('HEAD', url)
-        if res.status == 401 and username and password:
-            head = urllib3.make_headers(basic_auth=username + ':' + password)
-            http = urllib3.PoolManager()
-            req = http.request('GET', url, headers=head)
-            return req.status == 200
-        else:
-            return res.status == 200
+        try:
+            res = urllib3.request('HEAD', url)
+            if res.status == 401 and username and password:
+                head = urllib3.make_headers(basic_auth=username + ':' + password)
+                http = urllib3.PoolManager()
+                req = http.request('GET', url, headers=head)
+                return req.status == 200
+            else:
+                return res.status == 200
+        except:
+            return False
 
     # Checks an individual db
-    #TODO add type hint
+    # TODO add type hint
     @staticmethod
     def try_connect(dbtype: str, username: str, password: str,
-                    address: str, port: int) :
+                    address: str, port: int):
         # a = db.get_db(db)
         # url = sqlalchemy.URL.create(a.dbtype, a.username, a.password, a.address, a.port)
         if dbtype == 'postgresql':
@@ -123,10 +126,10 @@ class Checks:
             for db1 in all_dbs:
                 log.info(f'Checking {db1.address}/{db1.port}({db1.dbtype})')
                 if Checks.try_connect(dbtype=db1.dbtype,
-                                    username=db1.username,
-                                    password=db1.password,
-                                    address=db1.address,
-                                    port=db1.port):
+                                      username=db1.username,
+                                      password=db1.password,
+                                      address=db1.address,
+                                      port=db1.port):
                     log.info(str(db1.address) + ' is up')
                     if db1.status == 'down' or db1.status == 'unknown':
                         await (db.Database.
@@ -139,7 +142,7 @@ class Checks:
             await asyncio.sleep(global_time)
 
 
-async def main()->None:
+async def main() -> None:
     t1 = asyncio.create_task(server())
     t2 = asyncio.create_task(Checks.check_ips())
     t3 = asyncio.create_task(Checks.check_urls())
