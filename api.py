@@ -2,15 +2,20 @@ import asyncio
 import json
 import os
 from typing import Optional
+import logging
 
 import starlette.status as status
 from fastapi import (FastAPI, Request, Form,
                      WebSocket)
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates as j
 
 import db
+
+# logging
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -18,7 +23,7 @@ template = j(directory="templates")
 
 
 @app.get('/')
-def redirect(request: Request):
+def redirect():
     return RedirectResponse(url='/now', status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -45,6 +50,57 @@ async def add(request: Request):
     return template.TemplateResponse(request=request, name='add.html')
 
 
+@app.get('/table', response_class=HTMLResponse)
+async def table(request: Request):
+    return template.TemplateResponse(request=request, name='table.html')
+
+
+@app.get('/tdata', response_class=JSONResponse)
+async def tdata():
+    data_list=[]
+    data = await db.Database.get_all_ips()
+    if data:
+        # data_list.append(await parseData(0, data))
+        data_list+=await parseData(0, data)
+    data = await db.Database.get_all_urls()
+    if data:
+        data_list+=await parseData(1, data)
+    data = await db.Database.get_all_dbs()
+    if data:
+        data_list+=await parseData(2, data)
+
+    # log.info(data_list)
+    return data_list
+
+
+async def parseData(type, data):
+    # match type and add index
+    add_id = 0
+    match type:
+        case 0:
+            tp = 'id'
+        case 1:
+            tp = 'url'
+            add_id = await db.Database.get_last_ip_id()
+
+        case 2:
+            tp = 'db'
+            add_id = (await db.Database.get_last_ip_id() +
+                      await db.Database.get_last_url_id())
+        case _:
+            raise ValueError('Индекс типа неверрен')
+
+    # main code
+    out = []
+    for d in data:
+        o = d._asdict()
+        o['type'] = tp
+        o['id'] = int(o['id']) + add_id
+
+        out.append(o)
+    return out
+
+
 @app.post('/add')
 async def get_target(type: int = Form(), address: str = Form(),
                      username: Optional[str] = Form(None),
@@ -61,13 +117,36 @@ async def get_target(type: int = Form(), address: str = Form(),
     return RedirectResponse(url='/add', status_code=status.HTTP_303_SEE_OTHER)
 
 
+@app.post('/table')
+async def form(id: int = Form(), tp: str = Form()):
+    await delById(tp, id)
+    log.info('Удаляем '+str(id))
+    return True
+
+
+async def delById(type, id):
+    match type:
+        case 'id':
+            await db.Database.delete_ip(id)
+        case 'url':
+            id = id - await db.Database.get_last_ip_id()
+            await db.Database.delete_url(id)
+
+        case 'db':
+            id = id - (await db.Database.get_last_ip_id() +
+                       await db.Database.get_last_url_id())
+            await db.Database.delete_db(id)
+        case _:
+            raise ValueError('Индекс типа неверрен')
+
+
 @app.websocket('/ws')
 async def ws(websocket: WebSocket):
     await websocket.accept()
-    data= await db.Database.first_load_icons()
+    data = await db.Database.first_load_icons()
     await websocket.send_json(data)
     while True:
-        data =await db.Database.form_jsons(0)
+        data = await db.Database.form_jsons(0)
         await websocket.send_json(data)
         data = await db.Database.form_jsons(1)
         await websocket.send_json(data)

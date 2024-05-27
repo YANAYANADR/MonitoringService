@@ -132,7 +132,7 @@ class Checks:
                         await (db.Database.
                                add_db_status(db1.ex_id, datetime.datetime.now(), 'up'))
                 else:
-                    log.info(str() + ' is down')
+                    log.info(str(db1.address) + ' is down')
                     if db1.status == 'down' or db1.status == 'unknown':
                         await (db.Database.
                                add_db_status(db1.ex_id, datetime.datetime.now(), 'down'))

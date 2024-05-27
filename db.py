@@ -1,18 +1,16 @@
 import asyncio
 import datetime
 import functools
-import json
 import logging
 import os
 from typing import Optional
 
 import sqlalchemy
-from sqlalchemy import (create_engine, String, DateTime,
-                        text, select, func)
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncAttrs, async_sessionmaker, AsyncSession
+from sqlalchemy import (String, DateTime,
+                        text, select, func,delete)
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import (DeclarativeBase, Mapped,
-                            mapped_column, Session)
-import asyncpg
+                            mapped_column)
 
 # logging
 logging.basicConfig(level=logging.INFO)
@@ -165,20 +163,22 @@ class Database:
     @create_session()
     async def get_url(s: async_sessionmaker[AsyncSession](), id: int):
         out = await s.execute(select(Urls).where(Urls.id == id))
-        return out.first()[0]
+        res = out.first()[0]
+        return res if res else -1
 
     @staticmethod
     @create_session()
     async def get_db(s: async_sessionmaker[AsyncSession](), id: int):
         out = await s.execute(select(Dbs).where(Dbs.id == id))
-        return out.first()[0]
+        res = out.first()[0]
+        return res if res else -1
 
     # Get last ids
     @staticmethod
     @create_session()
     async def get_last_ip_id(s: async_sessionmaker[AsyncSession]()) -> int:
         out = await s.execute(select(func.max(Ips.id)))
-        res=out.first()[0]
+        res = out.first()[0]
         return res if res else 0
 
     @staticmethod
@@ -206,6 +206,28 @@ class Database:
     async def get_all_dbs(s: async_sessionmaker[AsyncSession]()):
         out = await s.execute(select(Dbs.id, Dbs.address, Dbs.port))
         return out.all()
+
+    # Delete by id
+    @staticmethod
+    @create_session()
+    async def delete_ip(s: async_sessionmaker[AsyncSession]()
+                        , id: int) -> None:
+        await Database.del_all_ip_status(id)
+        await s.execute(delete(Ips).where(Ips.id==id))
+
+    @staticmethod
+    @create_session()
+    async def delete_url(s: async_sessionmaker[AsyncSession]()
+                        , id: int) -> None:
+        await Database.del_all_url_status(id)
+        await s.execute(delete(Urls).where(Urls.id == id))
+
+    @staticmethod
+    @create_session()
+    async def delete_db(s: async_sessionmaker[AsyncSession]()
+                        , id: int) -> None:
+        await Database.del_all_db_status(id)
+        await s.execute(delete(Dbs).where(Dbs.id == id))
 
     # GEt all with status
     @staticmethod
@@ -264,28 +286,55 @@ class Database:
     @staticmethod
     @create_session()
     async def add_ip_status(s: async_sessionmaker[AsyncSession](),
-                            ex_id: int, time, status: str) -> None:
-        record = ConditionIp(ex_id=ex_id, time=time, status=status)
+                            ex_id: int, time: datetime.datetime, status: str) -> None:
+        if not (ex_id and time and status):
+            raise ValueError('Все поля должны быть заполнены для вставки')
+        record = ConditionIp(ex_id=int(ex_id), time=time, status=status)
         s.add(record)
 
     @staticmethod
     @create_session()
     async def add_url_status(s: async_sessionmaker[AsyncSession](),
-                             ex_id: int, time, status: str) -> None:
-        record = ConditionUrl(ex_id=ex_id, time=time, status=status)
+                             ex_id: int, time: datetime.datetime, status: str) -> None:
+        if not (ex_id and time and status):
+            raise ValueError('Все поля должны быть заполнены для вставки')
+        record = ConditionUrl(ex_id=int(ex_id), time=time, status=status)
         s.add(record)
 
     @staticmethod
     @create_session()
     async def add_db_status(s: async_sessionmaker[AsyncSession](),
-                            ex_id: int, time, status: str) -> None:
-        record = ConditionDb(ex_id=ex_id, time=time, status=status)
+                            ex_id: int, time: datetime.datetime, status: str) -> None:
+        if not (ex_id and time and status):
+            raise ValueError('Все поля должны быть заполнены для вставки')
+        record = ConditionDb(ex_id=int(ex_id), time=time, status=status)
         s.add(record)
+    # Delete(status)
+    @staticmethod
+    @create_session()
+    async def del_all_ip_status(s: async_sessionmaker[AsyncSession](),
+                            ex_id: int)->None:
+        await s.execute(delete(ConditionIp)
+                        .where(ConditionIp.ex_id==ex_id))
+
+    @staticmethod
+    @create_session()
+    async def del_all_url_status(s: async_sessionmaker[AsyncSession](),
+                            ex_id: int)->None:
+        await s.execute(delete(ConditionUrl)
+                        .where(ConditionUrl.ex_id==ex_id))
+
+    @staticmethod
+    @create_session()
+    async def del_all_db_status(s: async_sessionmaker[AsyncSession](),
+                            ex_id: int)->None:
+        await s.execute(delete(ConditionDb)
+                        .where(ConditionDb.ex_id==ex_id))
 
     # Misc
 
     @staticmethod
-    async def sorted_history(tp):
+    async def sorted_history(tp: int) -> list:
         # get history of all registered times in dictionary format
         history = await Database.get_history_ip()
         match tp:
@@ -325,7 +374,7 @@ class Database:
 
     # This is necessary to properly update colours
     @staticmethod
-    async def first_load_icons():
+    async def first_load_icons() -> list[dict]:
         ids = [i.id for i in await Database.get_all_ips()]
         for i in await Database.get_all_urls():
             ids.append(i.id + await Database.get_last_ip_id())
@@ -338,7 +387,7 @@ class Database:
         return out
 
     @staticmethod
-    async def form_jsons(history_type):
+    async def form_jsons(history_type: int) -> list[dict]:
         # get latest history
         # TODO this is bad fix this
 
@@ -433,9 +482,11 @@ class Database:
 
 if __name__ == '__main__':
     async def a():
-        h = await Database.get_history_ip()
-        print(h)
-        print([a[0].ex_id for a in h])
+        h = await Database.insert_ip('232.424.232.1')
+        # print([a._asdict() for a in h])
+        # print([a[0].ex_id for a in h])
+
+
     # asyncio.run(add_ip_status(2,datetime.datetime.now(),'up'))
     asyncio.run(a())
     pass
