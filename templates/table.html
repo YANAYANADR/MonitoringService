@@ -19,7 +19,13 @@
         <a href="/history">История</a>
         <a href="/table">Список</a>
     </header>
-    <table data-toggle="table" data-url="../tdata" id="table">
+    <div class="buttons-toolbar">
+</div>
+    <table data-toggle="table" data-url="../tdata" id="table"
+           data-search="true"
+    data-buttons-toolbar=".buttons-toolbar"
+    data-pagination="true"
+    >
       <thead>
         <tr>
           <th data-field="type">тип адреса</th>
