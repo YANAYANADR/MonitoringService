@@ -4,40 +4,85 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
- <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static',path='/add.css') }}" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
   </head>
   <body>
     <header>
-        <a href="/add">Добавить цель</a>
-        <a href="/now">Сейчас</a>
-        <a href="/history">История</a>
-        <a href="/table">Список</a>
+      <a href="/add">Добавить цель</a>
+      <a href="/now">Сейчас</a>
+      <a href="/history">История</a>
+      <a href="/table">Список</a>
     </header>
     <h1>Добавить цель</h1>
-    <form action="" method="post">
-      <select name="type" id="type" onchange="change_form(event)">
+    <form action="" method="post" class="container ">
+      <select
+        name="type"
+        id="type"
+        onchange="change_form(event)"
+        class="form-select"
+      >
         <option value="0">ip</option>
         <option value="1">url</option>
         <option value="2">database</option>
       </select>
       <label for="address" id="addressLabel"> Ip: </label>
-      <input type="text" name="address" id="address"
-             required />
+      <input
+        type="text"
+        name="address"
+        id="address"
+        required
+        class="form-control"
+      />
+      <label for="group" id="groupLabel"> Группа: </label>
+      <select
+        name="group"
+        id="group"
+        class="form-select"
+        required
+      >
+        {% for i in groups %}
+        <option>{{i}}</option>
+        {% endfor %}
+      </select>
       <label for="username" id="usernameLabel">Имя пользователя:</label>
-      <input type="text" name="username" id="username" />
+      <input type="text" name="username" id="username" class="form-control" />
       <label for="password" id="passwordLabel">Пароль:</label>
-      <input type="password" name="password" id="password" />
+      <input
+        type="password"
+        name="password"
+        id="password"
+        class="form-control"
+      />
       <label for="dbtype" id="dbtypeLabel">Тип бд:</label>
-      <select name="dbtype" id="dbtype">
+      <select name="dbtype" id="dbtype" class="form-select">
         <option>postgresql</option>
       </select>
       <label for="port" id="portLabel">Порт:</label>
-      <input type="text" name="port" id="port" />
-      <button>отправить</button>
+      <input type="text" name="port" id="port" class="form-control" />
+      <button class="btn btn-primary">отправить</button>
     </form>
     <script>
-
       function change_form(event) {
         val = event.target.value;
         console.log(val);
@@ -59,10 +104,10 @@
 
         switch (parseInt(val)) {
           case 0:
-            addressInp.placeholder='255.255.255.255'
-            addressInp.addEventListener('keydown',no_letters)
-            addressInp.title="Введите ip"
-            addressInp.pattern="[0-9.]{7,16}"
+            addressInp.placeholder = "255.255.255.255";
+            addressInp.addEventListener("keydown", no_letters);
+            addressInp.title = "Введите ip";
+            addressInp.pattern = "[0-9.]{7,16}";
             addressLabel.innerHTML = "Ip:";
 
             usernameInp.setAttribute("type", "hidden");
@@ -82,10 +127,10 @@
             portLabel.style.display = "none";
             break;
           case 1:
-          addressInp.placeholder='https://...'
-            addressInp.title="Введите url"
-            addressInp.removeEventListener('keydown',no_letters)
-            addressInp.pattern="https?://.+|ws?://.+"
+            addressInp.placeholder = "https://...";
+            addressInp.title = "Введите url";
+            addressInp.removeEventListener("keydown", no_letters);
+            addressInp.pattern = "https?://.+|ws?://.+";
             addressLabel.innerHTML = "Url:";
 
             usernameInp.setAttribute("type", "text");
@@ -105,9 +150,9 @@
             portLabel.style.display = "none";
             break;
           case 2:
-            addressInp.title="Введите адрес базы"
-            addressInp.removeEventListener('keydown',no_letters)
-            addressInp.pattern="[^]*"
+            addressInp.title = "Введите адрес базы";
+            addressInp.removeEventListener("keydown", no_letters);
+            addressInp.pattern = "[^]*";
             addressLabel.innerHTML = "Адрес базы:";
 
             usernameInp.setAttribute("type", "text");
@@ -123,11 +168,11 @@
             dbtypeLabel.style.display = "initial";
 
             portInp.setAttribute("type", "text");
-            portInp.addEventListener('keydown',only_num)
+            portInp.addEventListener("keydown", only_num);
             portInp.setAttribute("required", "true");
-            portInp.pattern="[0-9]*"
+            portInp.pattern = "[0-9]*";
             portLabel.style.display = "initial";
-            
+
             break;
           default:
             break;
@@ -136,24 +181,34 @@
       sel = document.getElementById("type");
       sel.dispatchEvent(new CustomEvent("change"));
 
-      function no_letters(event){
-      const key=event.keyCode;
-      const nope=[190,8,13];
-      if(!((key >= 48 && key <= 57) ||
-            (key >= 96 && key <= 105)
-            )&&!(nope.includes(key))){
-            event.preventDefault();
+      function no_letters(event) {
+        const key = event.keyCode;
+        const nope = [190, 8, 13];
+        if (
+          !((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) &&
+          !nope.includes(key)
+        ) {
+          event.preventDefault();
+        }
+      }
 
-      }};
-
-      function only_num(e){
-        const key=event.keyCode;
-      if(!((key >= 48 && key <= 57) ||
-            (key >= 96 && key <= 105) 
-            )&& key!=8){
-            event.preventDefault();
-
-      }};
+      function only_num(e) {
+        const key = event.keyCode;
+        if (
+          !((key >= 48 && key <= 57) || (key >= 96 && key <= 105)) &&
+          key != 8
+        ) {
+          event.preventDefault();
+        }
+      }
+      $(document).ready(function () {
+        console.log("hii");
+        $("#group").select2({
+          theme:'bootstrap-5',
+          width:'resolve',
+          tags:true
+        });
+      });
     </script>
   </body>
 </html>

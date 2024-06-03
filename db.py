@@ -7,7 +7,7 @@ from typing import Optional
 
 import sqlalchemy
 from sqlalchemy import (String, DateTime,
-                        text, select, func,delete)
+                        text, select, func, delete, update, join)
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import (DeclarativeBase, Mapped,
                             mapped_column)
@@ -37,6 +37,7 @@ class ConditionIp(Base):
     ex_id: Mapped[int] = mapped_column()
     time: Mapped[datetime.datetime] = mapped_column(DateTime())
     status: Mapped[str] = mapped_column(String())
+    reason_id: Mapped[Optional[int]] = mapped_column()
 
 
 class ConditionUrl(Base):
@@ -45,6 +46,7 @@ class ConditionUrl(Base):
     ex_id: Mapped[int] = mapped_column()
     time: Mapped[datetime.datetime] = mapped_column(DateTime())
     status: Mapped[str] = mapped_column(String())
+    reason_id: Mapped[Optional[int]] = mapped_column()
 
 
 class ConditionDb(Base):
@@ -53,12 +55,14 @@ class ConditionDb(Base):
     ex_id: Mapped[int] = mapped_column()
     time: Mapped[datetime.datetime] = mapped_column(DateTime())
     status: Mapped[str] = mapped_column(String())
+    reason_id: Mapped[Optional[int]] = mapped_column()
 
 
 class Ips(Base):
     __tablename__ = 'ips'
     id: Mapped[int] = mapped_column(primary_key=True)
     address: Mapped[str] = mapped_column(String())
+    group_id: Mapped[int] = mapped_column()
 
 
 class Urls(Base):
@@ -68,6 +72,7 @@ class Urls(Base):
     # optional auth
     username: Mapped[Optional[str]] = mapped_column(String())
     password: Mapped[Optional[str]] = mapped_column(String())
+    group_id: Mapped[int] = mapped_column()
 
 
 class Dbs(Base):
@@ -78,6 +83,20 @@ class Dbs(Base):
     port: Mapped[int] = mapped_column()
     username: Mapped[str] = mapped_column(String())
     password: Mapped[str] = mapped_column(String())
+    group_id: Mapped[int] = mapped_column()
+
+
+class Groups(Base):
+    __tablename__ = 'groups'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    group_name: Mapped[str] = mapped_column(String())
+
+
+class Reasons(Base):
+    __tablename__ = 'reasons'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    reason: Mapped[str] = mapped_column(String())
+    pass
 
 
 # TODO this is slow but idk what else to do
@@ -103,10 +122,11 @@ def create_session():
 
 
 class History:
-    def __init__(self, id=0, start=0, end=0):
+    def __init__(self, id=0, start=0, end=0, reason=''):
         self.id = id
         self.start = start
         self.end = end
+        self.reason = reason
 
 
 # Methods
@@ -123,9 +143,9 @@ class Database:
 
     @staticmethod
     @create_session()
-    async def insert_ip(s: async_sessionmaker[AsyncSession](), address: str) -> None:
+    async def insert_ip(s: async_sessionmaker[AsyncSession](), address: str, group_id: int) -> None:
         if not await Database.ip_in_db(address):
-            ip = Ips(address=address)
+            ip = Ips(address=address, group_id=group_id)
             s.add(ip)
             await s.flush()
             # adds unknown status
@@ -136,9 +156,9 @@ class Database:
     @staticmethod
     @create_session()
     async def insert_url(s: async_sessionmaker[AsyncSession](),
-                         address: str, username: Optional[str] = None,
+                         address: str, group_id: int, username: Optional[str] = None,
                          password: Optional[str] = None) -> None:
-        url = Urls(address=address, username=username, password=password)
+        url = Urls(address=address, username=username, password=password, group_id=group_id)
         s.add(url)
         await s.flush()
         await Database.add_url_status(url.id, datetime.datetime.now(), 'unknown')
@@ -146,8 +166,8 @@ class Database:
     @staticmethod
     @create_session()
     async def insert_db(s: async_sessionmaker[AsyncSession](), address: str,
-                        user: str, password: str, tp: str, port: int) -> None:
-        db = Dbs(address=address, dbtype=tp, port=int(port), username=user, password=password)
+                        user: str, password: str, tp: str, port: int, group_id: int) -> None:
+        db = Dbs(address=address, dbtype=tp, port=int(port), username=user, password=password, group_id=group_id)
         s.add(db)
         await s.flush()
         await Database.add_db_status(db.id, datetime.datetime.now(), 'unknown')
@@ -192,19 +212,19 @@ class Database:
     @staticmethod
     @create_session()
     async def get_all_ips(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(Ips.id, Ips.address))
+        out = await s.execute(select(Ips.id, Ips.address, Groups.group_name).where(Ips.group_id == Groups.id))
         return out.all()
 
     @staticmethod
     @create_session()
     async def get_all_urls(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(Urls.id, Urls.address))
+        out = await s.execute(select(Urls.id, Urls.address, Groups.group_name).where(Urls.group_id == Groups.id))
         return out.all()
 
     @staticmethod
     @create_session()
     async def get_all_dbs(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(Dbs.id, Dbs.address, Dbs.port))
+        out = await s.execute(select(Dbs.id, Dbs.address, Dbs.port, Groups.group_name).where(Dbs.group_id == Groups.id))
         return out.all()
 
     # Delete by id
@@ -213,12 +233,12 @@ class Database:
     async def delete_ip(s: async_sessionmaker[AsyncSession]()
                         , id: int) -> None:
         await Database.del_all_ip_status(id)
-        await s.execute(delete(Ips).where(Ips.id==id))
+        await s.execute(delete(Ips).where(Ips.id == id))
 
     @staticmethod
     @create_session()
     async def delete_url(s: async_sessionmaker[AsyncSession]()
-                        , id: int) -> None:
+                         , id: int) -> None:
         await Database.del_all_url_status(id)
         await s.execute(delete(Urls).where(Urls.id == id))
 
@@ -264,22 +284,31 @@ class Database:
     @staticmethod
     @create_session()
     async def get_history_ip(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(ConditionIp).
+        # out = await s.execute(select(ConditionIp,Reasons.reason)
+        #                       .where(or_(ConditionIp.reason_id==Reasons.id,ConditionIp.reason_id==None)).
+        #                       order_by(ConditionIp.ex_id, ConditionIp.time))
+        out = await s.execute(select(ConditionIp, Reasons.reason)
+                              .select_from(ConditionIp)
+                              .join(Reasons, ConditionIp.reason_id == Reasons.id, isouter=True).
                               order_by(ConditionIp.ex_id, ConditionIp.time))
         return out.all()
 
     @staticmethod
     @create_session()
     async def get_history_url(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(ConditionUrl)
-                              .order_by(ConditionUrl.ex_id, ConditionUrl.time))
+        out = await s.execute(select(ConditionUrl, Reasons.reason)
+                              .select_from(ConditionUrl)
+                              .join(Reasons, ConditionUrl.reason_id == Reasons.id, isouter=True).
+                              order_by(ConditionUrl.ex_id, ConditionUrl.time))
         return out.all()
 
     @staticmethod
     @create_session()
     async def get_history_db(s: async_sessionmaker[AsyncSession]()):
-        out = await s.execute(select(ConditionDb)
-                              .order_by(ConditionDb.ex_id, ConditionDb.time))
+        out = await s.execute(select(ConditionDb, Reasons.reason)
+                              .select_from(ConditionDb)
+                              .join(Reasons, ConditionDb.reason_id == Reasons.id, isouter=True).
+                              order_by(ConditionDb.ex_id, ConditionDb.time))
         return out.all()
 
     # Inserts(status)
@@ -309,34 +338,34 @@ class Database:
             raise ValueError('Все поля должны быть заполнены для вставки')
         record = ConditionDb(ex_id=int(ex_id), time=time, status=status)
         s.add(record)
+
     # Delete(status)
     @staticmethod
     @create_session()
     async def del_all_ip_status(s: async_sessionmaker[AsyncSession](),
-                            ex_id: int)->None:
+                                ex_id: int) -> None:
         await s.execute(delete(ConditionIp)
-                        .where(ConditionIp.ex_id==ex_id))
+                        .where(ConditionIp.ex_id == ex_id))
 
     @staticmethod
     @create_session()
     async def del_all_url_status(s: async_sessionmaker[AsyncSession](),
-                            ex_id: int)->None:
+                                 ex_id: int) -> None:
         await s.execute(delete(ConditionUrl)
-                        .where(ConditionUrl.ex_id==ex_id))
+                        .where(ConditionUrl.ex_id == ex_id))
 
     @staticmethod
     @create_session()
     async def del_all_db_status(s: async_sessionmaker[AsyncSession](),
-                            ex_id: int)->None:
+                                ex_id: int) -> None:
         await s.execute(delete(ConditionDb)
-                        .where(ConditionDb.ex_id==ex_id))
+                        .where(ConditionDb.ex_id == ex_id))
 
     # Misc
 
     @staticmethod
     async def sorted_history(tp: int) -> list:
-        # get history of all registered times in dictionary format
-        history = await Database.get_history_ip()
+        # get history of all registered times
         match tp:
             case 0:
                 history = await Database.get_history_ip()
@@ -344,11 +373,15 @@ class Database:
                 history = await Database.get_history_url()
             case 2:
                 history = await Database.get_history_db()
+            case _:
+                raise ValueError('Неверный тип истории')
 
         dc = History()
         history_data = []
         fin_on_d = False
+        reason = ''
         for point in history:
+
             p = point[0]
             if p.status == 'unknown':
                 continue
@@ -367,8 +400,14 @@ class Database:
                           .strftime('%Y-%m-%dT%H:%M:%S.%fZ'))
                 history_data.append(dc)
                 dc = History()
+            reason = point.reason
+            # print(reason)
+            if reason:
+                dc.reason = reason
+            reason = ''
         if fin_on_d:
             dc.end = None
+            dc.reason = history[-1].reason if history[-1].reason else ''
             history_data.append(dc)
         return history_data
 
@@ -426,28 +465,41 @@ class Database:
             case 1:
                 names = await Database.get_all_urls()
                 add_id = await Database.get_last_ip_id()
-                code = "\uf1c0",
+                code = "\uf233",
             case 2:
                 names = await Database.get_all_dbs()
                 add_id = await Database.get_last_ip_id() + await Database.get_last_url_id()
-                code = "\uf233"
+                code = "\uf1c0"
             case _:
                 raise ValueError('history_type can only be in range 0-2')
 
         for r in res:
             col = ''
             # making title
+            # print(datetime.datetime.time(r.start))
             if r.end:
+
                 if r.start:
-                    title = f'Был offline с {r.end} до {r.start}'
+                    title = (f'Был offline с {Database.format_time(r.start)}'
+                             f' до {Database.format_time(r.end)}')
+
+
                     col = '#A9F5D0'
+                    offline = False
+                    true_start = r.start
                 else:
-                    title = f'Online с {r.end}'
+                    title = f'Online с {Database.format_time(r.end)}'
                     col = '#A9F5D0'
+                    offline = False
+                    true_start = None
             else:
-                title = f'Offline с {r.start}'
+                title = f'Offline с {Database.format_time(r.start)}'
                 col = 'red'
+                offline = True
+                true_start = r.start
             dc['title'] = title
+            if r.reason:
+                dc['title']+='\nПричина: '+r.reason
             # making label
             # idk how else to do this
             label = 'err'
@@ -464,6 +516,8 @@ class Database:
             dc['id'] = int(r.id) + add_id
             dc['icon']['color'] = col
             dc['icon']['code'] = code
+            dc['offline'] = offline
+            dc['true_start'] = true_start
             output.append(dc)
             dc = {
                 'id': 0,
@@ -479,14 +533,100 @@ class Database:
             }
         return output
 
+    @staticmethod
+    def format_time(time):
+        return datetime.datetime.strftime((datetime.datetime.
+                                           strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')), '%Y-%m-%d %H:%M:%S')
+
+    # Groups
+    @staticmethod
+    @create_session()
+    async def group_in_db(s: async_sessionmaker[AsyncSession](), group_name: str):
+        out = await s.execute(select(func.count(1)).where(Groups.group_name == group_name))
+        return out.first()[0] > 0
+
+    @staticmethod
+    @create_session()
+    async def get_group_id(s: async_sessionmaker[AsyncSession](), group_name: str):
+        out = await s.execute(select(Groups.id).where(Groups.group_name == group_name))
+        return out.first()[0]
+
+    @staticmethod
+    @create_session()
+    async def get_group_name_all(s: async_sessionmaker[AsyncSession]()):
+        out = await s.execute(select(Groups.group_name))
+        return [a[0] for a in out.all()]
+
+    @staticmethod
+    @create_session()
+    async def insert_group(s: async_sessionmaker[AsyncSession](), group_name):
+        if await Database.group_in_db(group_name):
+            # raise ValueError('Такая группа уже есть')
+            return await Database.get_group_id(group_name)
+        else:
+            new_group = Groups(group_name=group_name)
+            s.add(new_group)
+            await s.flush()
+            return new_group.id
+
+    # Reasons
+    @staticmethod
+    @create_session()
+    async def insert_reason(s: async_sessionmaker[AsyncSession](), reason):
+        new_reason = Reasons(reason=reason)
+        s.add(new_reason)
+        await s.flush()
+        return new_reason.id
+
+    @staticmethod
+    @create_session()
+    async def reason_to_condition_ip(s: async_sessionmaker[AsyncSession](), reason_id, cond_id):
+        await s.execute(update(ConditionIp).where(ConditionIp.id == cond_id).values(reason_id=reason_id))
+
+    @staticmethod
+    @create_session()
+    async def reason_to_condition_url(s: async_sessionmaker[AsyncSession](), reason_id, cond_id):
+        await s.execute(update(ConditionUrl).where(ConditionUrl.id == cond_id).values(reason_id=reason_id))
+
+    @staticmethod
+    @create_session()
+    async def reason_to_condition_db(s: async_sessionmaker[AsyncSession](), reason_id, cond_id):
+        await s.execute(update(ConditionDb).where(ConditionDb.id == cond_id).values(reason_id=reason_id))
+
+    # GEt by ex_id and time
+    @staticmethod
+    @create_session()
+    async def get_cond_ip(s: async_sessionmaker[AsyncSession](), ex_id: int, time) -> int:
+        out = await s.execute(select(ConditionIp.id)
+                              .where(ConditionIp.ex_id == ex_id).where(ConditionIp.time == time))
+        res = out.first()[0]
+        return res if res else 0
+
+    @staticmethod
+    @create_session()
+    async def get_cond_url(s: async_sessionmaker[AsyncSession](), ex_id: int, time) -> int:
+        out = await s.execute(select(ConditionUrl.id)
+                              .where(ConditionUrl.ex_id == ex_id)
+                              .where(ConditionUrl.time == time))
+        res = out.first()[0]
+        return res if res else 0
+
+    @staticmethod
+    @create_session()
+    async def get_cond_db(s: async_sessionmaker[AsyncSession](), ex_id: int, time) -> int:
+        out = await s.execute(select(ConditionDb.id)
+                              .where(ConditionDb.ex_id == ex_id)
+                              .where(ConditionDb.time == time))
+        res = out.first()[0]
+        return res if res else 0
+
 
 if __name__ == '__main__':
     async def a():
-        h = await Database.insert_ip('232.424.232.1')
-        # print([a._asdict() for a in h])
-        # print([a[0].ex_id for a in h])
+        # h = await Database.form_jsons(2)
+        # print(h)
+        pass
 
 
-    # asyncio.run(add_ip_status(2,datetime.datetime.now(),'up'))
     asyncio.run(a())
     pass

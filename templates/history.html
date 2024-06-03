@@ -1,118 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <!-- <script src="../static/vis-timeline-graph2d.min.js"></script> -->
-        <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static',path='/styles.css') }}" />
     <script src="{{ url_for('static',path='/vis-timeline-graph2d.min.js') }}"></script>
     <!-- <link rel="stylesheet" href="../static/vis-timeline-graph2d.min.css" /> -->
-    <link rel="stylesheet" href="{{ url_for('static',path='/vis-timeline-graph2d.min.css') }}"/>
-</head>
-<body>
-<header>
-    <a href="/add">Добавить цель</a>
-    <a href="/now">Сейчас</a>
-    <a href="/history">История</a>
-    <a href="/table">Список</a>
-</header>
-<h1>История доступности</h1>
-<div id="visualization"></div>
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"
+  ></script>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static',path='/vis-timeline-graph2d.min.css') }}"
+    />
+    <link rel="stylesheet" href="{{ url_for('static',path='/history.css') }}" />
+  </head>
+  <body>
+    <header>
+      <a href="/add">Добавить цель</a>
+      <a href="/now">Сейчас</a>
+      <a href="/history">История</a>
+      <a href="/table">Список</a>
+    </header>
+    <h1>История доступности</h1>
+    <div id="visualization"></div>
+    <form action="false" class="container" id="form">
+      <input type="hidden" value="" name="item_id" id="item_id" >
+      <input type="hidden" value="" name="item_start" id="item_start">
+      <label for="reason">Причина offline:</label>
+      <input type="text" name="reason" id="reason" class="form-control" disabled="true">
+      <button class="btn btn-primary" id="sendBtn" disabled="true">отправить</button>
+    </form>
 
-<script type="text/javascript">
-    // DOM element where the Timeline will be attached
-    var container = document.getElementById("visualization");
-    //groups
-    var groups = new vis.DataSet([
-    {% set lastId=[]%}
-    {% set lastId2=[] %}
-      {% for item in ips %}
-      { id: {{item.id}}, content: "{{item.address}}", value: 1 },
-    {% set __=lastId.append(1) %}
-      {% endfor %}
-       {% for item in urls %}
-       { id: {{item.id}}+{{lastId|length}}, content: "{{item.address}}", value: 2 },
-       {% set __=lastId2.append(1) %}
-       {% endfor%}
-      {% for item in dbs %}
-       { id: {{item.id}}+{{lastId|length}}+{{lastId2|length}}, content: "{{item.address}}:{{item.port}}", value: 3 },
-       {% set __=lastId2.append(1) %}
-      {% endfor%}
+    <script type="text/javascript">
+      // DOM element where the Timeline will be attached
+      var container = document.getElementById("visualization");
+      //groups
+      var groups = new vis.DataSet([
+        {% for item in ips %}
+        { id: {{item.id}}, content: "{{item.address}}", value: 1 },
+        {% endfor %}
+         {% for item in urls %}
+         { id: {{item.id}}+{{last_ip}}, content: "{{item.address}}", value: 2 },
+         {% endfor%}
+        {% for item in dbs %}
+         { id: {{item.id}}+{{last_ip}}+{{last_url}}, content: "{{item.address}}:{{item.port}}", value: 3 },
+        {% endfor%}
 
-    ]);
-    // Create a DataSet (allows two way data-binding)
-    var items = new vis.DataSet([
-    //Get ips first
-      {% for i in ip_history %}
-       {% if i['start'] %}
-          {% if i['end'] %}
-       { content: "был offline", start: new Date(Date.parse('{{i['start']}}')),
-       end: new Date(Date.parse('{{i['end']}}')),
-       group: {{i['id']}} },
-
-       {% else %}
-       { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-       group: {{i['id']}} },
-       {% endif %}
-       {% else %}
-
-       { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-       group: {{i['id']}} },
-       {% endif %}
-      {% endfor %}
-
-      // Get urls now
-
-        {% for i in url_history %}
+      ]);
+      // Create a DataSet (allows two way data-binding)
+      var items = new vis.DataSet([
+      //Get ips first
+        {% for i in ip_history %}
          {% if i['start'] %}
             {% if i['end'] %}
-         { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+         { content: "Был offline", start: new Date(Date.parse('{{i['start']}}')),
          end: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['id']}}+{{lastId|length}} },
+         group: {{i['id']}},
+        true_start:'{{i['start']}}', reason :'{{i['reason']}}',
+        },
 
          {% else %}
-         { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-         group: {{i['id']}}+{{lastId|length}} },
+         { content: "Всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+         group: {{i['id']}}, true_start:'{{i['start']}}', reason :'{{i['reason']}}', end:new Date()},
          {% endif %}
          {% else %}
 
-         { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['id']}}+{{lastId|length}} },
+         { content: "Добавлен", start: new Date(Date.parse('{{i['end']}}')),
+         group: {{i['id']}}, true_start:'{{i['start']}}', },
          {% endif %}
         {% endfor %}
 
-        // get dbs
+        // Get urls now
 
-        {% for i in db_history %}
-         {% if i['start'] %}
-            {% if i['end'] %}
-         { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
-         end: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}} },
+          {% for i in url_history %}
+           {% if i['start'] %}
+              {% if i['end'] %}
+           { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+           end: new Date(Date.parse('{{i['end']}}')),
+           group: {{i['id']}}+{{last_ip}}, true_start:'{{i['start']}}',, reason :'{{i['reason']}}', },
 
-         {% else %}
-         { content: "всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
-         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}} },
-         {% endif %}
-         {% else %}
+           {% else %}
+           { content: "Всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+           group: {{i['id']}}+{{last_ip}}, true_start:'{{i['start']}}', reason :'{{i['reason']}}', end:new Date() },
+           {% endif %}
+           {% else %}
 
-         { content: "В сети с", start: new Date(Date.parse('{{i['end']}}')),
-         group: {{i['id']}}+{{lastId|length}}+{{lastId2|length}}-1 },
-         {% endif %}
-        {% endfor %}
-    ]);
+           { content: "Добавлен", start: new Date(Date.parse('{{i['end']}}')),
+           group: {{i['id']}}+{{last_ip}}, true_start:'{{i['start']}}' },
+           {% endif %}
+          {% endfor %}
 
-    // Configuration for the Timeline
-    var options = {
-      groupOrder: function (a, b) {
-        return a.value - b.value;
-      },
-    };
+          // get dbs
 
-    // Create a Timeline
-    var timeline = new vis.Timeline(container, items, options);
-    timeline.setGroups(groups);
-</script>
-</body>
+          {% for i in db_history %}
+           {% if i['start'] %}
+              {% if i['end'] %}
+           { content: "был offline", start: new Date(Date.parse('{{i['start']}}')-(5*60*60)),
+           end: new Date(Date.parse('{{i['end']}}')),
+           group: {{i['id']}}+{{last_ip}}+{{last_url}}, true_start:'{{i['start']}}', reason :'{{i['reason']}}', },
+
+           {% else %}
+           { content: "Всё ещё offline", start: new Date(Date.parse('{{i['start']}}')),
+           group: {{i['id']}}+{{last_ip}}+{{last_url}}, true_start:'{{i['start']}}', reason :'{{i['reason']}}', end:new Date() },
+           {% endif %}
+           {% else %}
+
+           { content: "Добавлен", start: new Date(Date.parse('{{i['end']}}')),
+           group: {{i['id']}}+{{last_ip}}+{{last_url}} , true_start:'{{i['start']}}',},
+           {% endif %}
+          {% endfor %}
+      ]);
+
+      // Configuration for the Timeline
+      var options = {
+        groupOrder: function (a, b) {
+          return a.value - b.value;
+        },
+      };
+
+      // Create a Timeline
+      var timeline = new vis.Timeline(container, items, options);
+      timeline.setGroups(groups);
+      timeline.off('select').on('select',onSel);
+      function onSel(props){
+        let a=items.get(props['items']['0'])
+        if(a.content!='Добавлен'){
+          let item_id=a.group
+        let item_start=a.true_start
+        
+        // window.prompt('Причина offline:')
+        $('#item_id').val(item_id);
+        $('#item_start').val(item_start);
+        $('#reason,#sendBtn').prop('disabled',false)
+        $('#reason').val(a.reason)
+        }
+        if(a.content==undefined){
+          $('#reason,#sendBtn').prop('disabled',true)
+        }
+      };
+      $('#form').submit(function(e){
+        // console.log(e)
+        e.preventDefault();
+        let reason=$('#reason').val()
+        let item_id=$('#item_id').val()
+    //     let item_start=new Date(Date.parse($('#item_start').val())).toLocaleString('en-GB',{
+    //       year: 'numeric',
+    // month: 'numeric',
+    // day: 'numeric',
+    // hour: 'numeric',
+    // minute: 'numeric',
+    // second: 'numeric',
+    // fractionalSecondDigits: 3
+    //     })
+        // item_start.format("dd/MM/yyyy HH:mm:ss:SSSSSS");
+        let item_start=$('#item_start').val()
+        console.log(item_start)
+        $.post('../history',{id:item_id,start:item_start.toString(),reason:reason});
+      })
+    </script>
+  </body>
 </html>

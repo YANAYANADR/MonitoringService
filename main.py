@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 log.error(os.environ['WAIT_TIME'])
 global_time = int(os.environ['WAIT_TIME'])
+# global_time = 60
 
 
 # The function that runs the FastAPI server
@@ -84,62 +85,85 @@ class Checks:
         # later pings get last status and if still down - ignore
         # if up - record time, vice versa if down
         while True:
-            all_ips = await db.Database.get_all_ips_status_time()
-            for ip in all_ips:
-                log.info('Checking ' + str(ip.address))
-                if Checks.ping(ip.address):
-                    log.info(str(ip.address) + ' is up')
-                    if ip.status == 'down' or ip.status == 'unknown':
-                        await (db.Database
-                               .add_ip_status(ip.ex_id, datetime.datetime.now(), 'up'))
-                else:
-                    log.info(str(ip.address) + ' is down')
-                    if ip.status == 'up' or ip.status == 'unknown':
-                        await (db.Database
-                               .add_ip_status(ip.ex_id, datetime.datetime.now(), 'down'))
-            await asyncio.sleep(global_time)
+            try:
+                log.info('Checking ip')
+                all_ips = await db.Database.get_all_ips_status_time()
+                for ip in all_ips:
+                    log.info('Checking ' + str(ip.address))
+                    if Checks.ping(ip.address):
+                        log.info(str(ip.address) + ' is up')
+                        if ip.status == 'down' or ip.status == 'unknown':
+                            await (db.Database
+                                   .add_ip_status(ip.ex_id, datetime.datetime.now(), 'up'))
+                    else:
+                        log.info(str(ip.address) + ' is down')
+                        if ip.status == 'up' or ip.status == 'unknown':
+                            await (db.Database
+                                   .add_ip_status(ip.ex_id, datetime.datetime.now(), 'down'))
+                await asyncio.sleep(global_time)
+            except:
+                # Without this it won't check again
+                # When first init db gives error
+                # It works as it should afterwards so its probably not important
+
+                log.warning('ip check has exception')
+                await asyncio.sleep(global_time)
+                continue
 
     @staticmethod
     async def check_urls() -> None:
         # I dont even know
         while True:
-            all_urls = await db.Database.get_all_urls_status_time()
-            for url in all_urls:
-                log.info('Checking ' + str(url.address))
-                if Checks.html(url.address, url.username, url.password):
-                    log.info(str(url.address) + ' is up')
-                    if url.status == 'down' or url.status == 'unknown':
-                        await (db.Database
-                               .add_url_status(url.ex_id, datetime.datetime.now(), 'up'))
-                else:
-                    log.info(str(url.address) + ' is down')
-                    if url.status == 'up' or url.status == 'unknown':
-                        await (db.Database
-                               .add_url_status(url.ex_id, datetime.datetime.now(), 'down'))
+            try:
+                log.info('Checking url')
+                all_urls = await db.Database.get_all_urls_status_time()
+                for url in all_urls:
+                    log.info('Checking ' + str(url.address))
+                    if Checks.html(url.address, url.username, url.password):
+                        log.info(str(url.address) + ' is up')
+                        if url.status == 'down' or url.status == 'unknown':
+                            await (db.Database
+                                   .add_url_status(url.ex_id, datetime.datetime.now(), 'up'))
+                    else:
+                        log.info(str(url.address) + ' is down')
+                        if url.status == 'up' or url.status == 'unknown':
+                            await (db.Database
+                                   .add_url_status(url.ex_id, datetime.datetime.now(), 'down'))
 
-            await asyncio.sleep(global_time)
+                await asyncio.sleep(global_time)
+            except:
+
+                log.warning('url check has exception')
+                await asyncio.sleep(global_time)
+                continue
 
     @staticmethod
     async def check_dbs() -> None:
         while True:
-            all_dbs = await db.Database.get_all_dbs_status_time()
-            for db1 in all_dbs:
-                log.info(f'Checking {db1.address}/{db1.port}({db1.dbtype})')
-                if Checks.try_connect(dbtype=db1.dbtype,
-                                      username=db1.username,
-                                      password=db1.password,
-                                      address=db1.address,
-                                      port=db1.port):
-                    log.info(str(db1.address) + ' is up')
-                    if db1.status == 'down' or db1.status == 'unknown':
-                        await (db.Database.
-                               add_db_status(db1.ex_id, datetime.datetime.now(), 'up'))
-                else:
-                    log.info(str(db1.address) + ' is down')
-                    if db1.status == 'down' or db1.status == 'unknown':
-                        await (db.Database.
-                               add_db_status(db1.ex_id, datetime.datetime.now(), 'down'))
-            await asyncio.sleep(global_time)
+            try:
+                log.info('Checking db')
+                all_dbs = await db.Database.get_all_dbs_status_time()
+                for db1 in all_dbs:
+                    log.info(f'Checking {db1.address}/{db1.port}({db1.dbtype})')
+                    if Checks.try_connect(dbtype=db1.dbtype,
+                                          username=db1.username,
+                                          password=db1.password,
+                                          address=db1.address,
+                                          port=db1.port):
+                        log.info(str(db1.address) + ' is up')
+                        if db1.status == 'down' or db1.status == 'unknown':
+                            await (db.Database.
+                                   add_db_status(db1.ex_id, datetime.datetime.now(), 'up'))
+                    else:
+                        log.info(str(db1.address) + ' is down')
+                        if db1.status == 'up' or db1.status == 'unknown':
+                            await (db.Database.
+                                   add_db_status(db1.ex_id, datetime.datetime.now(), 'down'))
+                await asyncio.sleep(global_time)
+            except:
+                log.warning('url check has exception')
+                await asyncio.sleep(global_time)
+                continue
 
 
 async def main() -> None:

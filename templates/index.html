@@ -14,6 +14,18 @@
     <a href="/history">История</a>
     <a href="/table">Список</a>
 </header>
+<link
+href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+rel="stylesheet"
+integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+crossorigin="anonymous"
+/>
+<script
+src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+crossorigin="anonymous"
+></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.11.1/css/all.css">
 <script type="text/javascript" src="https://visjs.github.io/vis-network/standalone/umd/vis-network.min.js"></script>
 <div id="network">
@@ -57,7 +69,7 @@
             icon: {
               face: "'Font Awesome 5 Free'",
               weight: "900", // Font Awesome 5 doesn't work properly unless bold.
-              code: "\uf1c0", // база данных
+              code: "\uf233", // сервер
               size: 50,
               color: "#A9F5D0",
             },
@@ -67,7 +79,7 @@
             icon: {
               face: "'Font Awesome 5 Free'",
               weight: "900", // Font Awesome 5 doesn't work properly unless bold.
-              code: "\uf233", // сервер
+              code: "\uf1c0", // база данных
               size: 50,
               color: "#A9F5D0",
             },
@@ -90,7 +102,23 @@
           .then(function () {
             // create a network
             const network = new vis.Network(container, data, options);
+            network.on("click",function(p){
+              let node=p['nodes']['0']
+              let item=nodes.get(p['nodes']['0'])
+              if(item['offline']){
+                console.log(item)
+                reason=prompt('Причина offline:')
+                if(reason){
+                  start=item['true_start']
+                $.post('../history',{id:node,start:start,reason:reason});
+                }
+                
+
+              }
+       
+      })
           })
+          
           .catch(
             console.error.bind(
               console,
@@ -105,8 +133,11 @@
             // create a network
             const network = new vis.Network(container, data, options);
           }, 500);
+          
         });
       }
+      
+    
       };
 
       drawFontAwesome5();
