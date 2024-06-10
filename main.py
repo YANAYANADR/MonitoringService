@@ -12,6 +12,16 @@ import uvicorn
 import asyncio
 
 import db
+# from tg_bot import bot as b
+# import bot_cfg
+
+import asyncio
+import os
+import aiohttp
+# import bot_cfg
+from telebot.async_telebot import AsyncTeleBot
+
+user = None
 
 # logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +29,8 @@ log = logging.getLogger(__name__)
 
 log.error(os.environ['WAIT_TIME'])
 global_time = int(os.environ['WAIT_TIME'])
+
+
 # global_time = 60
 
 
@@ -68,7 +80,8 @@ class Checks:
         # a = db.get_db(db)
         # url = sqlalchemy.URL.create(a.dbtype, a.username, a.password, a.address, a.port)
         if dbtype == 'postgresql':
-            url = sqlalchemy.URL.create(dbtype, username, password, address, port, 'postgres')
+            url = sqlalchemy.URL.create(dbtype, username, password, address, port,
+                                        'postgres')
         else:
             url = sqlalchemy.URL.create(dbtype, username, password, address, port)
             # TODO support diff dbs
@@ -93,11 +106,26 @@ class Checks:
                     if Checks.ping(ip.address):
                         log.info(str(ip.address) + ' is up')
                         if ip.status == 'down' or ip.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'ip адрес {ip.address} стал доступен.' +
+                                                           f' Был offline {await time_passed(ip.mt)}')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database
                                    .add_ip_status(ip.ex_id, datetime.datetime.now(), 'up'))
                     else:
                         log.info(str(ip.address) + ' is down')
                         if ip.status == 'up' or ip.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'ip адрес {ip.address} стал недоступен')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database
                                    .add_ip_status(ip.ex_id, datetime.datetime.now(), 'down'))
                 await asyncio.sleep(global_time)
@@ -105,7 +133,6 @@ class Checks:
                 # Without this it won't check again
                 # When first init db gives error
                 # It works as it should afterwards so its probably not important
-
                 log.warning('ip check has exception')
                 await asyncio.sleep(global_time)
                 continue
@@ -122,11 +149,26 @@ class Checks:
                     if Checks.html(url.address, url.username, url.password):
                         log.info(str(url.address) + ' is up')
                         if url.status == 'down' or url.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'url адрес {url.address} стал доступен.' +
+                                                           f' Был offline {await time_passed(url.mt)}')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database
                                    .add_url_status(url.ex_id, datetime.datetime.now(), 'up'))
                     else:
                         log.info(str(url.address) + ' is down')
                         if url.status == 'up' or url.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'url адрес {url.address} стал недоступен.')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database
                                    .add_url_status(url.ex_id, datetime.datetime.now(), 'down'))
 
@@ -152,11 +194,26 @@ class Checks:
                                           port=db1.port):
                         log.info(str(db1.address) + ' is up')
                         if db1.status == 'down' or db1.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'db адрес {db1.address} стал доступен.' +
+                                                           f' Был offline {await time_passed(db1.mt)}')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database.
                                    add_db_status(db1.ex_id, datetime.datetime.now(), 'up'))
                     else:
                         log.info(str(db1.address) + ' is down')
                         if db1.status == 'up' or db1.status == 'unknown':
+                            try:
+                                if user is not None:
+                                    await bot.send_message(user,
+                                                           f'db адрес {db1.address} стал недоступен.')
+                            except Exception:
+                                log.warning('Failed to send tg message.')
+                                continue
                             await (db.Database.
                                    add_db_status(db1.ex_id, datetime.datetime.now(), 'down'))
                 await asyncio.sleep(global_time)
@@ -166,16 +223,48 @@ class Checks:
                 continue
 
 
+async def time_passed(time):
+    difference = datetime.datetime.now() - time
+    return difference
+    # print(difference)
+
+
 async def main() -> None:
     t1 = asyncio.create_task(server())
     t2 = asyncio.create_task(Checks.check_ips())
     t3 = asyncio.create_task(Checks.check_urls())
     t4 = asyncio.create_task(Checks.check_dbs())
+    tb = asyncio.create_task(bot.polling())
+    # t=asyncio.create_task(test())
     await t1
     await t2
     await t3
     await t4
+    await tb
+    # await t
     # pass
+
+
+# Bot stuff
+# IDK how to make it work from a different py module
+
+
+bot = AsyncTeleBot(str(os.environ['BOT']))
+
+
+@bot.message_handler(commands=['start'])
+async def start_updates(message):
+    global user
+    user = message.chat.id
+    await bot.reply_to(message, f'Ваш chat id: {user}')
+    # print(user)
+
+
+@bot.message_handler(commands=['stop'])
+async def stop_updates(message):
+    await bot.reply_to(message, 'Обновления приостановлены.')
+    global user
+    user = None
 
 
 if __name__ == '__main__':
@@ -183,3 +272,5 @@ if __name__ == '__main__':
     #                   '1234', 'localhost', '5432'))
     # print(html('https://authenticationtest.com/HTTPAuth/'))
     asyncio.run(main())
+    # input('k')
+    # print(user)

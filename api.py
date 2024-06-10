@@ -39,7 +39,7 @@ async def history(request: Request):
                                      context={
                                          'ips': await db.Database.get_all_ips(),
                                          'ip_history': await db.Database.sorted_history(0),
-                                         'last_ip':await db.Database.get_last_ip_id(),
+                                         'last_ip': await db.Database.get_last_ip_id(),
                                          'urls': await db.Database.get_all_urls(),
                                          'url_history': await db.Database.sorted_history(1),
                                          'last_url': await db.Database.get_last_url_id(),
@@ -164,7 +164,7 @@ async def get_reason(id: int = Form(), start=Form(), reason: str = Form()):
 
 async def delById(type, id):
     match type:
-        case 'id':
+        case 'ip':
             await db.Database.delete_ip(id)
         case 'url':
             id = id - await db.Database.get_last_ip_id()

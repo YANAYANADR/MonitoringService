@@ -483,7 +483,6 @@ class Database:
                     title = (f'Был offline с {Database.format_time(r.start)}'
                              f' до {Database.format_time(r.end)}')
 
-
                     col = '#A9F5D0'
                     offline = False
                     true_start = r.start
@@ -499,7 +498,7 @@ class Database:
                 true_start = r.start
             dc['title'] = title
             if r.reason:
-                dc['title']+='\nПричина: '+r.reason
+                dc['title'] += '\nПричина: ' + r.reason
             # making label
             # idk how else to do this
             label = 'err'
@@ -620,11 +619,15 @@ class Database:
         res = out.first()[0]
         return res if res else 0
 
+# async def time_passed(time):
+#     difference=datetime.datetime.now()-time
+#     print(difference)
 
 if __name__ == '__main__':
     async def a():
-        # h = await Database.form_jsons(2)
-        # print(h)
+        # h = await Database.get_all_ips_status_time()
+        # print(h[0].mt)
+        # await time_passed(datetime.datetime.now()-datetime.timedelta(5,5))
         pass
 
 
